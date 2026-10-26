@@ -1,6 +1,6 @@
 # omnilab/uniprot
 
-UniProtKB for [omniscient/omnilab](https://github.com/glitchr-studio/omnilab): a protein by its
+UniProtKB for [omnisense/omnilab](https://github.com/glitchr-omnisense/omnilab): a protein by its
 accession or its entry name; its names, gene, organism, function, length, mass and sequence, where
 it sits in the cell, its cofactors and the ligands of its binding sites, its keywords; its genes in
 NCBI Gene and Ensembl as cross-references for the Collector to follow, and its organism, its PDB
