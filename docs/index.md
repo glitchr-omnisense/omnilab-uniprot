@@ -1,5 +1,11 @@
 # omnilab/uniprot
 
+UniProtKB through UniProt's REST API (`https://rest.uniprot.org/uniprotkb/`) for
+[omnisense/omnilab](https://github.com/glitchr-omnisense/omnilab): proteins by accession or entry
+name - function, gene, organism, sequence, mass, cofactors, ligands - with their genes in NCBI
+Gene and Ensembl as cross-references, their structures, cofactors and ligands as related things,
+as entities; a search in UniProt's query syntax. No key.
+
 ## Installation
 
 ```sh
@@ -17,6 +23,46 @@ $uniprot = (new UniProtSourceFactory($httpClient))->create([
 ```
 
 With the Symfony bundle, the factory is registered as `uniprot` (see the core's docs).
+
+## Credentials
+
+None: UniProt's REST API takes no key and no account. Give `mailto`, the address UniProt writes to
+before it blocks a caller.
+
+## Options
+
+The factory's options, with the defaults it applies (`UniProtSourceFactory`):
+
+| Option | Type | Default | Required | Effect |
+|---|---|---|---|---|
+| `sequence` | `int` | `2000` | no | the longest sequence given as the `sequence` property, in residues; 0: none |
+| `structures` | `int` | `20` | no | how many PDB structures to keep in `related('structure')`, in UniProt's order; 0: none |
+| `mailto` | `?string` | null | no | a contact address, in the User-Agent: whom UniProt writes to before it blocks a caller |
+| `user_agent` | `?string` | null | no | the whole User-Agent, in place of the one made from `mailto` |
+| `throttle` | `float` | `0` | no | seconds left between two calls: UniProt publishes no figure |
+| `base_uri` | `string` | `https://rest.uniprot.org/uniprotkb/` | no | the API the source calls |
+
+## Capabilities
+
+`capabilities()` answers `entity`, `search`, `cross_references`; an operation it does not answer throws `NotSupportedException` before any call.
+
+| Capability | Supported | |
+|---|---|---|
+| `entity` | yes | an accession (`P68871`, `uniprot:`, `uniprotkb:`, its page) or an entry name (`HBB_HUMAN`); a merged accession follows its target; another scheme refused before any call; one call |
+| `search` | yes | UniProt's query syntax (`gene:HBB AND organism_id:9606`), 500 a page at most, the next page by the `Link` header's cursor, the total from `X-Total-Results`; a domain other than biology answers an empty page |
+| `series` | no |  |
+| `products` | no |  |
+| `occurrences` | no |  |
+| `datasets` | no |  |
+| `jobs` | no |  |
+| `open` | no |  |
+| `structure` | no |  |
+| `cross_references` | yes | its genes in NCBI Gene and Ensembl; its structures, cofactors, ligands and organism are `related` |
+| `forecast` | no |  |
+| `historical` | no |  |
+| `area` | no |  |
+| `station` | no |  |
+| `cloud_cover` | no |  |
 
 ## Which API
 
@@ -88,8 +134,9 @@ genes: `entity()` reads the rest.
 No Wikidata item (UniProt keeps no cross-reference to it: Wikidata finds the protein by its
 accession, P352). Not read: the secondary accessions (not among the fields one can ask), the
 isoforms, the features other than binding sites (variants, domains, modified residues), the
-diseases, interactions, GO terms, references and the cross-references of schemes the core does not
-know (RefSeq, HGNC, OMIM, DrugBank, AlphaFold DB...). The ChEMBL target an entry names
+diseases, interactions, GO terms, references, the HGNC and OMIM cross-references (schemes the core
+has, not read here: omnilab/hgnc gives them) and those of schemes it does not know (RefSeq,
+DrugBank, AlphaFold DB...). The ChEMBL target an entry names
 (`CHEMBL4331` for hemoglobin beta) is not taken: the core's `chembl` scheme names molecules.
 UniRef, UniParc, proteomes and the ID mapping service are not used.
 
@@ -98,6 +145,52 @@ UniRef, UniParc, proteomes and the ID mapping service are not used.
 Hemoglobin beta from UniProt into NCBI Gene and Wikidata, answered on 2026-10-15: see the core's
 `docs/merging.md`. UniProt gives the gene (GeneID 3043), NCBI's gene report gives the accession
 back (`swiss_prot_accessions`), Wikidata's protein item (Q424422) carries it in P352.
+
+## Example
+
+```php
+<?php
+
+require __DIR__.'/vendor/autoload.php';
+
+use Omnilab\Model\Scheme;
+use Omnilab\Source\Query;
+use Omnilab\UniProt\UniProtSourceFactory;
+use Symfony\Component\HttpClient\HttpClient;
+
+$uniprot = (new UniProtSourceFactory(HttpClient::create()))->create(['mailto' => 'you@example.org', 'sequence' => 0, 'structures' => 3]);
+
+$hbb = $uniprot->entity('HBB_HUMAN');   // by its entry name
+echo $hbb->label, ' (', $hbb->id, '): gene ', $hbb->value('gene'), ', ', $hbb->value('organism'), ', ', $hbb->property('sequence_length'), ', ', $hbb->property('mass'), "\n";
+echo '  NCBI Gene ', $hbb->identifier(Scheme::NCBI_GENE), ', Ensembl ', $hbb->identifier(Scheme::ENSEMBL), '; structures ', implode(', ', $hbb->related('structure')->values(Scheme::PDB)), '; ligands ', implode(', ', array_map('strval', $hbb->properties('ligand'))), "\n";
+
+$page = $uniprot->search(new Query('gene:HBB AND organism_id:9606', limit: 3));
+printf("%d entries for gene:HBB in human; the first %d: %s\n", $page->total, count($page), implode(', ', array_map(static fn ($e) => $e->id->value.' '.$e->label, $page->items)));
+```
+
+```
+Hemoglobin subunit beta (uniprot:P68871): gene HBB, Homo sapiens, 147 aa, 15998 Da
+  NCBI Gene 3043, Ensembl ENSG00000244734; structures 1A00, 1A01, 1A0U; ligands (2R)-2,3-bisphosphoglycerate, heme b
+18 entries for gene:HBB in human; the first 3: P68871 Hemoglobin subunit beta, F8W6P5 Hemoglobin subunit beta, Q7Z2K5 Beta-globin
+```
+
+(as answered on 2026-10-27: three calls - the search by entry name, the entry, the search)
+
+```yaml
+# config/packages/omnilab.yaml
+omnilab:
+    sources:
+        uniprot: { factory: uniprot, options: { mailto: '%env(OMNILAB_MAILTO)%', sequence: 2000, structures: 20 } }
+```
+
+## Errors
+
+Every call goes through `HttpSource`: a 404 or a 410 (and a 204) is null - an empty page for a list -; a 429 is a `RateLimitedException` (`retryAfter` from `Retry-After`); a 5xx, a time-out or a host that does not answer an `UnavailableException`; any other 4xx a `ProviderException` with its `status` and what the service said; an answer that is not JSON a `ProviderException`, a web page answered for JSON an `UnavailableException`.
+
+UniProt's own: its `messages` are read into the message of a `ProviderException` (a query it
+cannot parse: its 400); an unknown accession is its 404, null; an accession demerged into several
+or deleted is null; a merge is followed (three at most). Before any call: a name, a gene, any
+other scheme (`NotSupportedException`): search for a name.
 
 ## Verified, and not
 
@@ -112,6 +205,19 @@ the same gene 3043, existence inferred from homology, score 1); a search for "he
 page by the cursor of the Link header; the double compression of a body asked for `gzip` alone.
 The fixtures in `Tests/Fixtures/` are its answers, carbonic anhydrase 2's PDB lines cut to 30.
 
+Again on 2026-10-27: hemoglobin beta by its entry name, its gene, structures and ligands, the
+search for `gene:HBB AND organism_id:9606` (18 entries; the example above).
+
 Not verified: UniProt's answer to a client that calls too fast (no 429 met outside the stream
 endpoint - the handling is the core's); an obsolete entry merged twice over (the source follows
 three merges at most).
+
+## Responsibility
+
+This package is an independent, unofficial client: it is not affiliated with, endorsed by or
+sponsored by the UniProt Consortium. UniProt's data are under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): cite UniProt where they are shown, as
+the README's [Terms of use](https://github.com/glitchr-omnisense/omnilab-uniprot#terms-of-use)
+says. Whoever runs the package is responsible for complying with it and for any use made of what
+it returns: see the README's
+[Responsibility](https://github.com/glitchr-omnisense/omnilab-uniprot#responsibility) section.
