@@ -1,0 +1,40 @@
+{
+    "$schema": "https://github.com/glitchr-omnisense/contracts/blob/1.x/resources/usage-policy.schema.json",
+    "provider": "uniprot",
+    "rateLimits": null,
+    "concurrency": null,
+    "rights": {
+        "commercial": "allowed",
+        "openSourceRequired": null,
+        "caching": {
+            "permission": "allowed",
+            "maxTtl": null
+        },
+        "storage": "allowed",
+        "redistribution": "allowed",
+        "attribution": {
+            "required": true,
+            "text": "UniProt Consortium, UniProt (CC BY 4.0)",
+            "url": "https://www.uniprot.org/help/publications",
+            "where": [
+                "source"
+            ]
+        },
+        "licence": "CC-BY-4.0"
+    },
+    "requirements": {
+        "key": false,
+        "userAgent": {
+            "required": false,
+            "pattern": null
+        }
+    },
+    "provenance": {
+        "terms": "https://www.uniprot.org/help/license",
+        "policy": "https://www.uniprot.org/help/api_queries",
+        "verifiedAt": "2026-11-10",
+        "declaredBy": "maintainer",
+        "contact": null,
+        "notes": "Read 2026-11-10 through rest.uniprot.org/help/{license,programmatic_access,api,api_queries} (the www.uniprot.org pages are a JavaScript app): CC BY 4.0 on all copyrightable parts of the databases, cite per the \"How to cite us\" page; some data may be covered by patents or other rights. No request rate is published for the REST API; only the stream endpoint (not used by the source) limits parallel requests, without a figure, and answers 429. No RateLimit header seen on a live call. UniProt is also an EMBL-EBI service, under its terms of use (https://www.ebi.ac.uk/about/terms-of-use). No API contact address found on the pages read."
+    }
+}

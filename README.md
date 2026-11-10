@@ -46,6 +46,17 @@ series: cache what it answers.
 
 See [docs/](docs/index.md) for what is read, how it maps, and what UniProt does not give here.
 
+## Usage policy
+
+Declared as data in [`policy.json`](policy.json) (read at https://www.uniprot.org/help/api_queries on 2026-11-10), and honoured on every request by the
+core: a limit reached waits when its window ends within `max_wait` seconds, else the request is not
+sent ([Usage policies](https://github.com/glitchr-omnisense/omnilab/blob/1.x/docs/policies.md)).
+
+- Limits: not published (unknown).
+- Licence: CC-BY-4.0; commercial use: allowed.
+- Credit: required: UniProt Consortium, UniProt (CC BY 4.0) (https://www.uniprot.org/help/publications).
+- Needs: nothing.
+
 ## Responsibility
 
 This package is an independent, unofficial client: it is not affiliated with, endorsed by or
