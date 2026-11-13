@@ -36,6 +36,34 @@ With NCBI and Wikidata configured too, the `Collector` follows a protein to its 
 item: `$collector->collect('uniprot', 'P68871')` reaches NCBI Gene by GeneID 3043 and Wikidata by
 the UniProt accession its item carries (P352).
 
+## Install and a first call
+
+```sh
+composer require omnilab/uniprot
+```
+
+A real call, with no account and no key: human haemoglobin beta in UniProtKB. `mailto` is your
+address, sent in the User-Agent so that the service can reach you before it blocks a caller; the
+source keeps to the limits its [`policy.json`](policy.json) declares.
+
+```php
+<?php
+
+require __DIR__.'/vendor/autoload.php';
+
+use Omnilab\UniProt\UniProtSourceFactory;
+
+$uniprot = (new UniProtSourceFactory())->create(['mailto' => 'you@example.org']);   // your address, in the User-Agent
+$hbb = $uniprot->entity('P68871');
+echo $hbb->label, ', gene ', $hbb->value('gene'), ', ', $hbb->property('mass'), "\n";
+```
+
+Its output on 2026-11-13:
+
+```
+Hemoglobin subunit beta, gene HBB, 15998 Da
+```
+
 ## Terms of use
 
 UniProt's data is under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): cite UniProt
